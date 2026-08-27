@@ -1,0 +1,29 @@
+# Build output
+/build/
+bin/
+out/
+
+# Gradle
+.gradle/
+
+# Maven
+target/
+
+# IDE - STS / Eclipse
+.classpath
+.project
+.settings/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+
+# Compiled Java files
+*.class
+
+# Log files
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
