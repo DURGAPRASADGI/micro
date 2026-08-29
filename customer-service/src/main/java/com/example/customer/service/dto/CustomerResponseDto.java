@@ -1,7 +1,5 @@
 package com.example.customer.service.dto;
 
-import java.time.LocalDateTime;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -10,14 +8,14 @@ import lombok.Setter;
 
 @AllArgsConstructor
 @NoArgsConstructor
-@Getter
 @Setter
+@Getter
 @Builder
-public class ResponseDto<T> {
-	private int statusCode;
-	private boolean success;
-	private LocalDateTime timesTamp;
-	private String mesaage;
-	private T data;
+public class CustomerResponseDto {
+	private Long customerId;
+	private String name;
+	private String email;
+	private Long phoneNumber;
+	private String address;
 
 }

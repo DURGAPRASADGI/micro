@@ -8,6 +8,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -16,25 +17,26 @@ import lombok.Setter;
 @NoArgsConstructor
 @Setter
 @Getter
+@Builder
 public class CustomerRequestDto {
 	
-	@NotBlank(message = "name cannot be blank or empty")
-	@Pattern(regexp = "^[a-zA-Z.]+$",message = "name should accept alphates or .")
-	@Size(max = 100,message = "name not exced more than 100 charactors")
+	@NotBlank(message = "{customer.name.blank}")
+	@Pattern(regexp = "^[a-zA-Z .]*$",message = "{customer.name.invalid}")
+	@Size(max = 10,message = "{customer.name.size}")
 	private String name;
 	
-	@NotBlank(message = "email cannot be empty or blank")
-	@Email
+	@NotBlank(message = "{customer.email.blank}")
+	@Email(message = "{customer.email.invalid}")
 	private String email;
 
-	@NotNull(message = "phone Number not Null")
-	@Min(value = 1000000000, message = "phone Number should have 10 charctors ")
-	@Digits(integer = 10,fraction = 0,message = "phone number accept 10 digits")
+	@NotNull(message = "{customer.phone.null}")
+	@Min(value = 1000000000, message = "{customer.phone.min}")
+	@Digits(integer = 10,fraction = 0,message = "{customer.phone.digits}")
 	private Long phoneNumber;
 	
-	@NotBlank(message = "address cannot be blank or Number")
-	@Pattern(regexp = "^[a-zA-Z./-]+$",message = "addres accept alphates or . or / or -")
-	@Size(max = 100,message = "address cannot be exced more than  100 charactors")
+	@NotBlank(message = "{customer.address.blank}")
+	@Pattern(regexp = "^[a-zA-Z0-9 ./-]*$",message = "{customer.address.invalid}")
+	@Size(max = 100,message = "{customer.address.size}")
 	private String address;
 
 }
