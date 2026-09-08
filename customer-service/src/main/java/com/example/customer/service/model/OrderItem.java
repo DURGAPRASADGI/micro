@@ -1,14 +1,14 @@
 package com.example.customer.service.model;
 
-import java.util.List;
+import java.math.BigDecimal;
 
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -22,17 +22,21 @@ import lombok.Setter;
 @Getter
 @Builder
 @Entity
-@Table
-public class Customer {
+@Table(name = "orderItem")
+public class OrderItem {
 	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long customerId;
-	private String name;
-	private String email;
-	private Long phoneNumber;
-	private String address;
+	@GeneratedValue(strategy =  GenerationType.IDENTITY)
+	private Long orderItemId;
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "order_id")
+	private Order order;
 	
-	@OneToMany(mappedBy = "customer", orphanRemoval = true,cascade = CascadeType.ALL,fetch = FetchType.LAZY)
-	private List<Order> orders;
+	private Long productId;
+	
+	private String productName;
+	
+	private Integer quantity;
+	
+	private BigDecimal unitPrice;
 
 }

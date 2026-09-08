@@ -55,6 +55,20 @@ public class GlobalExcepation extends ResponseEntityExceptionHandler{
 		
 	}
 
+	
+	@ExceptionHandler(exception = ResourceNotFound.class)
+	public final  ResponseEntity<Object> ResourceNotFoundException(Exception ex, WebRequest request)  {
+		ResponseDto<Object> dto=ResponseDto.builder()
+				                          .statusCode(HttpStatus.NOT_FOUND.value())
+				                          .success(Boolean.FALSE)
+				                          .timesTamp(LocalDateTime.now())
+				                          .mesaage(ex.getMessage())
+				                          .data(null)
+				                          .build();
+		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(dto);
+		
+	}
+
 
 	@ExceptionHandler(exception = Exception.class)
 	public final  ResponseEntity<Object> exception(Exception ex, WebRequest request) throws Exception {
