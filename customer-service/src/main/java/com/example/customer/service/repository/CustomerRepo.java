@@ -1,5 +1,6 @@
 package com.example.customer.service.repository;
 
+import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -16,5 +17,9 @@ public interface CustomerRepo  extends JpaRepository<Customer, Long>{
 	boolean emailAlreadyExist(@Param("email") String email);
 
 	Optional<Customer> findByPhoneNumber(Long phoneNumber);
+	
+	@Query("select c.customerId as customerId,c.name as name,c.email as email,c.phoneNumber as phoneNumber,c.address  as address from Customer c "
+			+ " where c.email= :email and c.phoneNumber = :phoneNumber")
+	Map<String, Object> findByEmailAndPhoneNumber(@Param("email") String email,@Param("phoneNumber") Long phoneNumber);
 
 }
