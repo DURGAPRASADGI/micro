@@ -1,5 +1,7 @@
 package com.example.customer.service.dto;
 
+
+
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Min;
@@ -21,7 +23,7 @@ import lombok.Setter;
 public class CustomerRequestDto {
 	
 	@NotBlank(message = "{customer.name.blank}")
-	@Pattern(regexp = "^[a-zA-Z .]*$",message = "{customer.name.invalid}")
+	@Pattern(regexp = "^[a-zA-Z .]+$",message = "{customer.name.invalid}")
 	@Size(max = 10,message = "{customer.name.size}")
 	private String name;
 	
@@ -38,5 +40,7 @@ public class CustomerRequestDto {
 	@Pattern(regexp = "^[a-zA-Z0-9 ./-]*$",message = "{customer.address.invalid}")
 	@Size(max = 100,message = "{customer.address.size}")
 	private String address;
+	
+
 
 }
