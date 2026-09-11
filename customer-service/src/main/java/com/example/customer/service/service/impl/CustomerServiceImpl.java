@@ -1,16 +1,16 @@
 package com.example.customer.service.service.impl;
 
-import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.stream.Collectors;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.MessageSource;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +21,8 @@ import com.example.customer.service.exception.ResourceNotFound;
 import com.example.customer.service.exception.ResuorceAlreadyExist;
 import com.example.customer.service.mapper.CustomerMapper;
 import com.example.customer.service.model.Customer;
+import com.example.customer.service.model.Order;
+import com.example.customer.service.model.OrderItem;
 import com.example.customer.service.repository.CustomerRepo;
 import com.example.customer.service.service.CustomerService;
 import com.example.customer.service.util.CustomerUtil;
@@ -82,27 +84,71 @@ public class CustomerServiceImpl implements CustomerService {
 	}
 
 	@Override
-	@CachePut(value = "customerResponseDto",key = "#p0.email" +"#p0.phoneNumber")
+    @CachePut(value = "customerResponseDto",key = "#p0.email + #p0.phoneNumber")
 	@Transactional
-	public CustomerResponseDto updateCustomer(CustomerUpdateDto customerUpdateDto) {
-		// TODO Auto-generated method stub
-		Map<String, Object> customerMap=customerRepo.findByEmailAndPhoneNumber(customerUpdateDto.getEmail(),customerUpdateDto.getPhoneNumber());
-		if(customerMap.isEmpty()) {
-			throw new ResourceNotFound(String.format("%s email and %d phoneNumber not found ", customerUpdateDto.getEmail(),customerUpdateDto.getPhoneNumber()));
-		}
-		
-		
-		
-		Customer customer=CustomerUtil.getCustomer(customerMap);
-		customer.setCustomerId(customerUpdateDto.getCustomerId());
-		customer.setName(customerUpdateDto.getName());
-		customer.setEmail(customerUpdateDto.getEmail());
-		customer.setPhoneNumber(customerUpdateDto.getPhoneNumber());
-		customer.setAddress(customerUpdateDto.getAddress());
-		
-		Customer SavedCustomer= customerRepo.save(customer);
-		
-		return  CustomerMapper.toDto(SavedCustomer);
+	public CustomerResponseDto updateCustomer(
+	        CustomerUpdateDto customerUpdateDto) {
+
+	    Map<String, Object> customerMap =
+	            customerRepo.findByEmailAndPhoneNumber(
+	                    customerUpdateDto.getEmail(),
+	                    customerUpdateDto.getPhoneNumber());
+
+	    if (customerMap.isEmpty()) {
+	        throw new ResourceNotFound(
+	                String.format(
+	                        "%s email and %d phoneNumber not found",
+	                        customerUpdateDto.getEmail(),
+	                        customerUpdateDto.getPhoneNumber()));
+	    }
+
+	    Customer customer = CustomerUtil.getCustomer(customerMap);
+
+	    customer.setCustomerId(customerUpdateDto.getCustomerId());
+	    customer.setName(customerUpdateDto.getName());
+	    customer.setEmail(customerUpdateDto.getEmail());
+	    customer.setPhoneNumber(customerUpdateDto.getPhoneNumber());
+	    customer.setAddress(customerUpdateDto.getAddress());
+
+	    List<Order> orders =
+	            customerUpdateDto.getOrderRequestDtos()
+	                    .stream()
+	                    .map(ord -> {
+
+	                        Order order =
+	                                CustomerMapper.orderRequestDtoToEntity(
+	                                        ord,
+	                                        new Order());
+
+	                        List<OrderItem> orderItems =
+	                                ord.getOrderItemRequestDtos()
+	                                        .stream()
+	                                        .map(item -> {
+
+	                                            OrderItem orderItem =
+	                                                    CustomerMapper
+	                                                            .orderItemRequestDtoToEntity(
+	                                                                    item,
+	                                                                    new OrderItem());
+
+	                                            orderItem.setOrder(order);
+
+	                                            return orderItem;
+	                                        })
+	                                        .collect(Collectors.toList());
+
+	                        order.setOrderItems(orderItems);
+	                        order.setCustomer(customer);
+
+	                        return order;
+	                    })
+	                    .collect(Collectors.toList());
+
+	    customer.setOrders(orders);
+
+	    Customer savedCustomer = customerRepo.save(customer);
+
+	    return CustomerMapper.toDto(savedCustomer);
 	}
 
 	@Override
