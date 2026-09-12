@@ -1,6 +1,7 @@
 package com.example.customer.service.service.impl;
 
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -35,7 +36,6 @@ import com.example.customer.service.service.CustomerService;
 import com.example.customer.service.util.CommonUtil;
 import com.example.customer.service.util.CustomerUtil;
 
-import io.lettuce.core.protocol.CommandKeyword;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -47,6 +47,7 @@ public class CustomerServiceImpl implements CustomerService {
 	
 	private final CustomerRepo customerRepo;
 	private final MessageSource messageSource;
+	private final CommonUtil commonUtil;
 	
 
 	@Override
@@ -240,6 +241,33 @@ public Page<PaginationResponseDto> getRecordsByUsinJpaQueriesDto(@Valid Paginati
 		Pageable pageable=PageRequest.of(paginationDto.getPageNo(), paginationDto.getSize());
 		 Page<PaginationResponseDto> result=customerRepo.getRecordsByUsinJpaQueriesDto(paginationDto,pageable);
 		return result;
+	}
+
+	@Override
+	public CustomerResponseDto getDataBasedOnEmailAndPhoneNumber(String email, Long phoneNumer) {
+		// TODO Auto-generated method stub
+		return customerRepo.getDataBasedOnEmailAndPhoneNumber(email,phoneNumer) ;
+	}
+
+	@Override
+	public List<String> validateCustomer(String email, Long phoneNumber) {
+		// TODO Auto-generated method stub
+		List<String> list =new ArrayList<>();
+		commonUtil.fieldValidation(email, list);
+		commonUtil.fieldValidationForLong(phoneNumber, list);
+		if(!list.isEmpty()) {
+			return list;
+		}
+		else {
+			if(!customerRepo.emailAlreadyExist(email)) {
+				list.add (messageSource.getMessage("customer.email.cannot.exist", new Object[] {email}, Locale.getDefault()));
+			}
+			
+			if(customerRepo.findByPhoneNumber(phoneNumber).isEmpty()) {
+				list.add (messageSource.getMessage("customer.phone.number.cannot.exist", new Object[] {String.valueOf(phoneNumber)},Locale.getDefault()));
+			}
+		}
+		return list;
 	}
 	
 	

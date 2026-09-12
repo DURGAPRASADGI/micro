@@ -1,5 +1,7 @@
 package com.example.customer.service.service;
 
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 
 import com.example.customer.service.dto.CustomerRequestDto;
@@ -25,5 +27,9 @@ public interface CustomerService {
 	Page<PaginationResponseDto> getRecordsByUsinJpaQueries(@Valid PaginationDto paginationDto);
 
 	Page<PaginationResponseDto> getRecordsByUsinJpaQueriesDto(@Valid PaginationDto paginationDto);
+
+	CustomerResponseDto getDataBasedOnEmailAndPhoneNumber(String email, Long phoneNumer);
+	
+	List<String> validateCustomer(String email,Long  phoneNumber);;
 
 }

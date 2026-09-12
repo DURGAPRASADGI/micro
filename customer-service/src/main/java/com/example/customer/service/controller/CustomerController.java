@@ -1,11 +1,13 @@
 package com.example.customer.service.controller;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Locale;
 
 import org.springframework.context.MessageSource;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.customer.service.constant.CustomerConstant;
 import com.example.customer.service.dto.CustomerRequestDto;
 import com.example.customer.service.dto.CustomerResponseDto;
 import com.example.customer.service.dto.CustomerUpdateDto;
@@ -27,6 +30,7 @@ import com.example.customer.service.dto.PaginationResponseDto;
 import com.example.customer.service.dto.ResponseDto;
 import com.example.customer.service.service.CustomerService;
 
+import io.netty.handler.address.ResolveAddressHandler;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 
@@ -63,7 +67,7 @@ public class CustomerController {
 	}
 	
 	@GetMapping("/{id}")
-	public ResponseEntity<Object> getAll(@PathVariable("id") Long id){
+	public ResponseEntity<Object> getAll(@PathVariable Long id){
 		CustomerResponseDto customer=customerService.getAllCustomer(id);
 		  ResponseDto<Object> dto=ResponseDto.builder()
 	                 .statusCode(HttpStatus.CREATED.value())
@@ -149,6 +153,37 @@ return ResponseEntity.status(HttpStatus.OK).body(dto);
 		Page<PaginationResponseDto> page=customerService.getRecordsByUsinJpaQueriesDto(paginationDto);
 		return ResponseEntity.status(HttpStatus.OK).body(page);
 		
+	}
+	
+	@GetMapping("/data")
+	public ResponseEntity<Object> getDataBasedOnEmailAndPhoneNumber(@RequestParam (name = "email", required =  false) String email,
+			@RequestParam (name = "phoneNumber", required = false) Long phoneNumber){
+		List<String> validationError=customerService.validateCustomer(email,phoneNumber);
+		if(!validationError.isEmpty()) {
+			ResponseDto<Object> dto=ResponseDto.builder()
+                    .statusCode(HttpStatus.NOT_FOUND.value())
+                    .success(Boolean.TRUE)
+	                 .mesaage(CustomerConstant.VALIDATION_FAILED)
+                    .data(validationError)
+                    .timesTamp(LocalDateTime.now())
+                    .build();
+			return ResponseEntity.status(HttpStatus.OK).body(dto);
+
+			
+		}else {
+			
+		
+		CustomerResponseDto customerResponseDto=customerService.getDataBasedOnEmailAndPhoneNumber(email,phoneNumber);
+		ResponseDto<Object> dto=ResponseDto.builder()
+				                           .statusCode(HttpStatus.OK.value())
+				                           .success(Boolean.TRUE)
+				      	                 .mesaage(messageSource.getMessage("customer.successfully.retrive", null, Locale.getDefault()))
+				                           .data(customerResponseDto)
+				                           .timesTamp(LocalDateTime.now())
+				                           .build();
+		
+		return ResponseEntity.status(HttpStatus.OK).body(dto);
+		}
 	}
 	
 	

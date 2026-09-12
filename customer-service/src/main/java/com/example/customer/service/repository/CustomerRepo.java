@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import com.example.customer.service.dto.CustomerResponseDto;
 import com.example.customer.service.dto.PaginationDto;
 import com.example.customer.service.dto.PaginationResponseDto;
 import com.example.customer.service.model.Customer;
@@ -128,5 +129,12 @@ public interface CustomerRepo  extends JpaRepository<Customer, Long>{
 	        ) order By o.orderDate
 	       			""")
 	Page<PaginationResponseDto> getRecordsByUsinJpaQueriesDto(@Valid @Param("paginationDto") PaginationDto paginationDto, Pageable pageable);
+
+	@Query("""
+			SELECT new com.example.customer.service.dto.CustomerResponseDto( c.customerId,c.name,c.email,c.phoneNumber,c.address) from Customer c
+			where (c.email IS NULL OR c.email='' OR c.email=:email) and 
+			(c.phoneNumber IS NULL OR c.phoneNumber=:phoneNumber)
+			""")
+	CustomerResponseDto getDataBasedOnEmailAndPhoneNumber(@Param("email") String email, @Param("phoneNumber") Long phoneNumer);
 	
 }
