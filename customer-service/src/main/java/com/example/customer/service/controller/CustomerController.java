@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.Locale;
 
 import org.springframework.context.MessageSource;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +22,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.customer.service.dto.CustomerRequestDto;
 import com.example.customer.service.dto.CustomerResponseDto;
 import com.example.customer.service.dto.CustomerUpdateDto;
+import com.example.customer.service.dto.PaginationDto;
+import com.example.customer.service.dto.PaginationResponseDto;
 import com.example.customer.service.dto.ResponseDto;
 import com.example.customer.service.service.CustomerService;
 
@@ -93,6 +96,8 @@ return ResponseEntity.status(HttpStatus.OK).body(dto);
 	}
 	
 	
+	
+	
 	@DeleteMapping("/delete")
 	public ResponseEntity<Object> deleteCustomer(@RequestParam(required = false) Long customerId){
 		 boolean flag =customerService.deleteCustomer(customerId);
@@ -118,6 +123,37 @@ return ResponseEntity.status(HttpStatus.OK).body(dto);
 			 
 		
 	}
+	
+	//pagination  but using native (sql query) but it not most suggestable way becuase jpa there no offset and limit
+	@PostMapping("/pagination")
+	public ResponseEntity<Page<PaginationResponseDto>> getRecordsByUsingNativeQueries(@Valid @RequestBody PaginationDto paginationDto){
+		Page<PaginationResponseDto> page=customerService.getRecords(paginationDto);
+		return ResponseEntity.status(HttpStatus.OK).body(page);
+		
+	}
+	
+	
+	//pagination  but using Jpa but it  most suggestable way and we need Page<Map<String , Object>>  is there any calculation after get data from db 
+
+	@PostMapping("/pagination-jpa-map")
+	public ResponseEntity<Page<PaginationResponseDto>> getRecordsByUsinJpaQueries(@Valid @RequestBody PaginationDto paginationDto){
+		Page<PaginationResponseDto> page=customerService.getRecordsByUsinJpaQueries(paginationDto);
+		return ResponseEntity.status(HttpStatus.OK).body(page);
+		
+	}
+	
+	//pagination  but using Jpa but it  most suggestable way and we need Page<PaginationResponseDto>  is there no calculation after get data from db 
+
+	@PostMapping("/pagination-jpa-dto")
+	public ResponseEntity<Page<PaginationResponseDto>> getRecordsByUsinJpaQueriesDto(@Valid @RequestBody PaginationDto paginationDto){
+		Page<PaginationResponseDto> page=customerService.getRecordsByUsinJpaQueriesDto(paginationDto);
+		return ResponseEntity.status(HttpStatus.OK).body(page);
+		
+	}
+	
+	
+	
+	
 	
 
 }
