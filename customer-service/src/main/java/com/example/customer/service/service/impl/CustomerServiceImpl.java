@@ -1,6 +1,7 @@
 package com.example.customer.service.service.impl;
 
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -15,15 +16,18 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.jaxb.SpringDataJaxb.PageRequestDto;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.customer.service.constant.CustomerConstant;
 import com.example.customer.service.dto.CustomerRequestDto;
 import com.example.customer.service.dto.CustomerResponseDto;
 import com.example.customer.service.dto.CustomerUpdateDto;
 import com.example.customer.service.dto.PaginationDto;
 import com.example.customer.service.dto.PaginationResponseDto;
+import com.example.customer.service.event.CustomerEvent;
+import com.example.customer.service.event.EventStaus;
 import com.example.customer.service.exception.ResourceNotFound;
 import com.example.customer.service.exception.ResuorceAlreadyExist;
 import com.example.customer.service.mapper.CustomerMapper;
@@ -48,6 +52,8 @@ public class CustomerServiceImpl implements CustomerService {
 	private final CustomerRepo customerRepo;
 	private final MessageSource messageSource;
 	private final CommonUtil commonUtil;
+	private final KafkaTemplate<String, Object> kafkaTemplate;
+	
 	
 
 	@Override
@@ -66,6 +72,18 @@ public class CustomerServiceImpl implements CustomerService {
 		Customer customer=CustomerMapper.toEntity(customerRequestDto, new Customer());
 		
 		Customer savedCustomer=  customerRepo.save(customer);
+		
+		CustomerEvent customerEvent=CustomerEvent.builder()
+				                                 .customerId(savedCustomer.getCustomerId())
+				                                 .name(savedCustomer.getName())
+				                                 .email(savedCustomer.getEmail())
+				                                 .phoneNumber(savedCustomer.getPhoneNumber())
+				                                 .address(savedCustomer.getAddress())
+				                                 .eventType(EventStaus.CREATED)
+				                                 .eventTimestamp(LocalDateTime.now())
+				                                 .build();
+		
+		kafkaTemplate.send(CustomerConstant.CUSTOMER_TOPIC, customerEvent);
 		
 		CustomerResponseDto customerResponseDto= CustomerMapper.toDto(savedCustomer);
 		
