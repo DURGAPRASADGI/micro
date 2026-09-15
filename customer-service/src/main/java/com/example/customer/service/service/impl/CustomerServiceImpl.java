@@ -1,5 +1,6 @@
 package com.example.customer.service.service.impl;
 
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -11,22 +12,35 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.MessageSource;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.customer.service.constant.CustomerConstant;
 import com.example.customer.service.dto.CustomerRequestDto;
 import com.example.customer.service.dto.CustomerResponseDto;
 import com.example.customer.service.dto.CustomerUpdateDto;
+import com.example.customer.service.dto.PaginationDto;
+import com.example.customer.service.dto.PaginationResponseDto;
+import com.example.customer.service.event.CustomerEvent;
+import com.example.customer.service.event.EventStaus;
 import com.example.customer.service.exception.ResourceNotFound;
 import com.example.customer.service.exception.ResuorceAlreadyExist;
 import com.example.customer.service.mapper.CustomerMapper;
 import com.example.customer.service.model.Customer;
 import com.example.customer.service.model.Order;
 import com.example.customer.service.model.OrderItem;
+import com.example.customer.service.model.OrderStatus;
 import com.example.customer.service.repository.CustomerRepo;
 import com.example.customer.service.service.CustomerService;
+import com.example.customer.service.util.CommonUtil;
 import com.example.customer.service.util.CustomerUtil;
 
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -37,6 +51,9 @@ public class CustomerServiceImpl implements CustomerService {
 	
 	private final CustomerRepo customerRepo;
 	private final MessageSource messageSource;
+	private final CommonUtil commonUtil;
+	private final KafkaTemplate<String, Object> kafkaTemplate;
+	
 	
 
 	@Override
@@ -55,6 +72,18 @@ public class CustomerServiceImpl implements CustomerService {
 		Customer customer=CustomerMapper.toEntity(customerRequestDto, new Customer());
 		
 		Customer savedCustomer=  customerRepo.save(customer);
+		
+		CustomerEvent customerEvent=CustomerEvent.builder()
+				                                 .customerId(savedCustomer.getCustomerId())
+				                                 .name(savedCustomer.getName())
+				                                 .email(savedCustomer.getEmail())
+				                                 .phoneNumber(savedCustomer.getPhoneNumber())
+				                                 .address(savedCustomer.getAddress())
+				                                 .eventType(EventStaus.CREATED)
+				                                 .eventTimestamp(LocalDateTime.now())
+				                                 .build();
+		
+		kafkaTemplate.send(CustomerConstant.CUSTOMER_TOPIC, customerEvent);
 		
 		CustomerResponseDto customerResponseDto= CustomerMapper.toDto(savedCustomer);
 		
@@ -162,6 +191,101 @@ public class CustomerServiceImpl implements CustomerService {
 		customerRepo.deleteById(customerId);
 		
 		return true;
+	}
+
+	@Override
+	@Transactional
+	//pagination  but using native (sql query) but it not most suggestable way becuase jpa there no offset and limit
+
+	public Page<PaginationResponseDto> getRecords(@Valid PaginationDto paginationDto) {
+		// TODO Auto-generated method stub
+		int offset=(paginationDto.getPageNo()-1)*paginationDto.getSize();
+		Pageable pageable=PageRequest.of(paginationDto.getPageNo(), paginationDto.getSize());
+		List<Map<String, Object>> data=customerRepo.getPageDetaills(offset,paginationDto);
+		Long count=customerRepo.count(paginationDto);
+		
+		
+		return new PageImpl<>(dtos(data), pageable, count);
+	}
+	
+	public List<PaginationResponseDto> dtos(List<Map<String, Object>> data){
+		 return data.stream().map(m->{
+			  PaginationResponseDto paginationResponseDto=new PaginationResponseDto();
+			  paginationResponseDto.setProductName(CommonUtil.getString(m.get("productName")));
+			  paginationResponseDto.setQuantity(CommonUtil.getInt( m.get("quantity")));
+			  
+			  paginationResponseDto.setUnitprice(CommonUtil.getBigDecimal(m.get("unitPrice")));
+			  paginationResponseDto.setOrderStatus(CommonUtil.getEnum(m.get("status")));
+			  paginationResponseDto.setTotalOrdedAmount(CommonUtil.getBigDecimal(m.get("totalOrdedAmount")));
+			  
+			  paginationResponseDto.setProductPrice(CommonUtil.getBigDecimal(m.get("productPrice")));
+
+			  
+			  return paginationResponseDto;
+			  
+		  }).collect(Collectors.toList());
+		
+	}
+
+	@Override
+	@Transactional
+	//pagination  but using Jpa but it  most suggestable way and we need Page<Map<String , Object>>  is there any calculation after get data from db 
+
+	public Page<PaginationResponseDto> getRecordsByUsinJpaQueries(@Valid PaginationDto paginationDto) {
+		// TODO Auto-generated method stub
+		Pageable pageable=PageRequest.of(paginationDto.getPageNo(), paginationDto.getSize());
+		Page<Map<String , Object>> data=customerRepo.getRecordsByUsinJpaQueries(paginationDto,pageable);
+		// Page<Map<String , Object>>  to Page<PaginationResponseDto>
+		Page<PaginationResponseDto> result=data.map(map->{
+			PaginationResponseDto dto=new PaginationResponseDto();
+			dto.setProductName(CommonUtil.getString(map.get("productName")));
+			dto.setQuantity(CommonUtil.getInt(map.get("quantity")));
+			
+			dto.setOrderStatus( CommonUtil.getEnum(map.get("status"), OrderStatus.class));
+			dto.setUnitprice(CommonUtil.getBigDecimal(map.get("unitPrice")));
+			dto.setProductPrice(CommonUtil.getBigDecimal(map.get("productPrice")));
+			dto.setTotalOrdedAmount(CommonUtil.getBigDecimal(map.get("productPrice")));
+			return dto;
+			
+		});
+		return result;
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	//pagination  but using Jpa but it  most suggestable way and we need Page<PaginationResponseDto>  is there no calculation after get data from db 
+public Page<PaginationResponseDto> getRecordsByUsinJpaQueriesDto(@Valid PaginationDto paginationDto) {
+		// TODO Auto-generated method stub
+		Pageable pageable=PageRequest.of(paginationDto.getPageNo(), paginationDto.getSize());
+		 Page<PaginationResponseDto> result=customerRepo.getRecordsByUsinJpaQueriesDto(paginationDto,pageable);
+		return result;
+	}
+
+	@Override
+	public CustomerResponseDto getDataBasedOnEmailAndPhoneNumber(String email, Long phoneNumer) {
+		// TODO Auto-generated method stub
+		return customerRepo.getDataBasedOnEmailAndPhoneNumber(email,phoneNumer) ;
+	}
+
+	@Override
+	public List<String> validateCustomer(String email, Long phoneNumber) {
+		// TODO Auto-generated method stub
+		List<String> list =new ArrayList<>();
+		commonUtil.fieldValidation(email, list);
+		commonUtil.fieldValidationForLong(phoneNumber, list);
+		if(!list.isEmpty()) {
+			return list;
+		}
+		else {
+			if(!customerRepo.emailAlreadyExist(email)) {
+				list.add (messageSource.getMessage("customer.email.cannot.exist", new Object[] {email}, Locale.getDefault()));
+			}
+			
+			if(customerRepo.findByPhoneNumber(phoneNumber).isEmpty()) {
+				list.add (messageSource.getMessage("customer.phone.number.cannot.exist", new Object[] {String.valueOf(phoneNumber)},Locale.getDefault()));
+			}
+		}
+		return list;
 	}
 	
 	
